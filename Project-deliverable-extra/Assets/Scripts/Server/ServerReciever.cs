@@ -1,4 +1,6 @@
 using _MessageType;
+using Message = _MessageType.Message;
+
 using System.Collections;
 using System.Collections.Generic;
 using System.Net;
