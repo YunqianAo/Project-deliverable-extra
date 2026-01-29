@@ -12,7 +12,7 @@ using TMPro;
 public class Server : MonoBehaviour
 {
 
-    public const int MAX_PLAYERS = 2;
+    public const int MAX_PLAYERS = 1;
     int connectedPlayers = 0;
 
     Thread waitingClientThread;
@@ -125,11 +125,11 @@ public class Server : MonoBehaviour
             Debug.Log("Connected Player " + connectedPlayers);
 
             // If max players are connected, start the game
-            //if (connectedPlayers == MAX_PLAYERS)
-            //{
-            //    Debug.Log("All players connected. Starting game...");
-            //    StartPlaying(); // Notify all players to start the game
-            //}
+            if (connectedPlayers == MAX_PLAYERS)
+            {
+                Debug.Log("All players connected. Starting game...");
+                StartPlaying(); // Notify all players to start the game
+            }
         }
     }
 
@@ -141,10 +141,10 @@ public class Server : MonoBehaviour
     //GAME
     public void StartPlaying()
     {
-        if (connectedPlayers < 2) return;
+        //if (connectedPlayers < 2) return;
 
         //Stop searching clients
-        StopSearching();
+        //StopSearching();
 
         //SendStart message
         for (int i = 0; i < connectedPlayers; i++)
