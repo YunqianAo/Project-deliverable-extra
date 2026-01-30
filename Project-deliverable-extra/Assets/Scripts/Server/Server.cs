@@ -11,36 +11,57 @@ using TMPro;
 
 public class Server : MonoBehaviour
 {
-
-    public const int MAX_PLAYERS = 1;
+    // CAMBIADO: Ahora permite 2 jugadores
+    public const int MAX_PLAYERS = 2;
     int connectedPlayers = 0;
 
     Thread waitingClientThread;
     [SerializeField] GameObject Port;
     [SerializeField] GameObject IP;
+    [SerializeField] GameObject PlayersConnectedText;  // NUEVO: Texto para mostrar jugadores conectados
 
     Socket socket;
     EndPoint[] remote;
 
     int port;
 
+    private bool updateUI = false;
+    private string statusMessage = "";
+
     void Start()
     {
         remote = new EndPoint[MAX_PLAYERS];
-        waitingClientThread = new Thread(WaitClient);
+
+        if (IP != null)
+            IP.GetComponent<TextMeshProUGUI>().text = "Ip: " + GetMyIp();
 
         //Setup port
         ServerSetup();
+
         Debug.Log("IP: " + GetMyIp() + "\tPORT: " + port.ToString());
-        waitingClientThread.Start();
 
         //Set port in screen
-        Port.GetComponent<TextMeshProUGUI>().text = "Port: " + port.ToString();
+        if (Port != null)
+            Port.GetComponent<TextMeshProUGUI>().text = "Port: " + port.ToString();
 
-        IP.GetComponent<TextMeshProUGUI>().text = "Ip: " + GetMyIp();
+        if (PlayersConnectedText != null)
+            PlayersConnectedText.GetComponent<TextMeshProUGUI>().text = "Jugadores: 0/" + MAX_PLAYERS + "\nEsperando conexiones...";
 
+        waitingClientThread = new Thread(WaitClient);
+        waitingClientThread.Start();
+    }
 
-        MessageManager.messageDistribute[MessageType.PING] += HandlePing;
+    // NUEVO: Update para actualizar UI desde el main thread
+    void Update()
+    {
+        if (updateUI)
+        {
+            if (PlayersConnectedText != null)
+            {
+                PlayersConnectedText.GetComponent<TextMeshProUGUI>().text = statusMessage;
+            }
+            updateUI = false;
+        }
     }
 
     void ServerSetup()
@@ -113,7 +134,7 @@ public class Server : MonoBehaviour
             if (message != "ClientConnected")
             {
                 Debug.Log("Incorrect confirmation message: " + message);
-                return;
+                continue;  // CAMBIADO: continue en vez de return para seguir esperando
             }
 
             //Send Confirmation Message
@@ -123,6 +144,18 @@ public class Server : MonoBehaviour
             //End
             connectedPlayers++;
             Debug.Log("Connected Player " + connectedPlayers);
+
+            // NUEVO: Actualizar UI
+            statusMessage = "Jugadores: " + connectedPlayers + "/" + MAX_PLAYERS;
+            if (connectedPlayers < MAX_PLAYERS)
+            {
+                statusMessage += "\nEsperando más jugadores...";
+            }
+            else
+            {
+                statusMessage += "\n¡Todos conectados! Iniciando...";
+            }
+            updateUI = true;
 
             // If max players are connected, start the game
             if (connectedPlayers == MAX_PLAYERS)
@@ -141,20 +174,12 @@ public class Server : MonoBehaviour
     //GAME
     public void StartPlaying()
     {
-        //if (connectedPlayers < 2) return;
-
-        //Stop searching clients
-        //StopSearching();
-
         //SendStart message
         for (int i = 0; i < connectedPlayers; i++)
         {
             byte[] sendData = Encoding.ASCII.GetBytes(i + "StartGame");
             socket.SendTo(sendData, sendData.Length, SocketFlags.None, remote[i]);
         }
-
-        //Server only show a normal screen
-       // ScreenServer();
 
         //ChangeScene
         StartComunication();
@@ -190,9 +215,11 @@ public class Server : MonoBehaviour
     {
         PingMessage ping = message as PingMessage;
 
+        if (ping == null) return;  // NUEVO: Validación
+
         Message pong = new Message(MessageType.PONG)
         {
-            id = ping.id,         
+            id = ping.id,
             playerID = ping.playerID
         };
 
@@ -216,8 +243,6 @@ public class Server : MonoBehaviour
             byte[] sendData = Encoding.ASCII.GetBytes(message);
             socket.SendTo(sendData, sendData.Length, SocketFlags.None, remote[i]);
         }
-
-       
     }
 
     string GetMyIp()
@@ -231,6 +256,29 @@ public class Server : MonoBehaviour
             }
         }
 
-        return "";
+        return "No IP found";
+    }
+
+    void OnDestroy()
+    {
+        if (waitingClientThread != null && waitingClientThread.IsAlive)
+        {
+            waitingClientThread.Abort();
+        }
+
+        if (socket != null)
+        {
+            socket.Close();
+        }
+
+        if (MessageManager.messageDistribute != null && MessageManager.messageDistribute.Count > 0)
+        {
+            MessageManager.messageDistribute[MessageType.PING] -= HandlePing;
+        }
+    }
+
+    void OnApplicationQuit()
+    {
+        StopConnection();
     }
 }

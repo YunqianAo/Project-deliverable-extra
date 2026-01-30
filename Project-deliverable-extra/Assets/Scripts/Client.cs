@@ -55,22 +55,15 @@ public class Client : MonoBehaviour
 
     IEnumerator FillInputField()
     {
-        //Get IP without last digits
         string myIp = GetMyIp();
-        int i = myIp.LastIndexOf('.');
-        myIp = myIp.Substring(0, i + 1);
-
-        //Fill input
 
         inputIp.text = myIp;
         inputIp.Select();
-
 
         inputPort.text = "9000";
 
         yield return new WaitForEndOfFrame();
 
-        //Needs to wait to set cursor
         inputIp.caretPosition = inputIp.text.Length;
         inputIp.ForceLabelUpdate();
     }
