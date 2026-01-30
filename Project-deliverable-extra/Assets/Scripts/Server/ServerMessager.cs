@@ -75,16 +75,27 @@ public class ServerMessager : MonoBehaviour
 
     void ProcessReceivedMessages(Message m)
     {
-        //When a message is received, distribute to other players & process received ACKS
 
-        //Acks
         if (m.type == MessageType.ACKNOWLEDGEMENTS)
         {
             OnAcknowledgementsRecieved(m);
             return;
         }
 
-        //Distribute messages to other players
+        if (m.type == MessageType.PING)
+        {
+            Message pong = new Message(MessageType.PONG)
+            {
+                id = m.id,
+                playerID = m.playerID,
+                time = m.time 
+            };
+
+            byte[] data = Serializer.ToBytes(pong);
+            socket.SendTo(data, data.Length, System.Net.Sockets.SocketFlags.None, remote);
+            return;
+        }
+
         ServerReceiver.SendMessageToEveryone(playerID, m);
     }
 

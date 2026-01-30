@@ -215,15 +215,17 @@ public class Server : MonoBehaviour
     {
         PingMessage ping = message as PingMessage;
 
-        if (ping == null) return;  // NUEVO: Validación
+        if (ping == null) return;
 
         Message pong = new Message(MessageType.PONG)
         {
             id = ping.id,
-            playerID = ping.playerID
+            playerID = ping.playerID,
+            time = ping.time  
         };
 
-        MessageManager.SendMessage(pong);
+        byte[] data = Serializer.ToBytes(pong);
+        socket.SendTo(data, data.Length, System.Net.Sockets.SocketFlags.None, remote[ping.playerID]);
     }
 
     //Screen

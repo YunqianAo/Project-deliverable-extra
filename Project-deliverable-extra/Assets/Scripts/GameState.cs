@@ -180,18 +180,18 @@ public class GameState : MonoBehaviour
 
     void HandlePong(Message message)
     {
-        Message pong = message as Message;
+        if (message == null) return;
 
-        if (pong != null)
+        float rtt = Time.time - message.time;
+
+        float latencyMs = (rtt / 2) * 1000;
+
+        if (pingText != null)
         {
-            // RTT = Tiempo actual - Timestamp del Ping enviado
-            float rtt = Time.time - pong.time;
-
-            // Latencia = RTT / 2
-            float latency = rtt / 2;
-
-            Debug.Log($"RTT: {rtt * 1000} ms, Latencia: {latency * 1000} ms");
+            pingText.text = "Ping: " + Mathf.RoundToInt(latencyMs) + " ms";
         }
+
+        Debug.Log($"RTT: {rtt * 1000} ms, Latencia: {latencyMs} ms");
     }
 
     void MessagePosition(Message message)
